@@ -190,26 +190,25 @@ static void auto_gimbal_adjust(gimbal_t pgimbal)
 {
   if (auto_adjust_f)
   {
-    pid_struct_init(&pid_pit, 2000, 0, 20, 0, 0);
-    pid_struct_init(&pid_pit_spd, 3000, 3000, 60, 0.2, 0);
+    pid_struct_init(&pid_pit, 2000, 0, 40, 0, 0);
+    pid_struct_init(&pid_pit_spd, 30000, 3000, 60, 0.2, 0);
     HAL_GPIO_WritePin(LED_GPIO_Port, LD1_Pin,GPIO_PIN_RESET);
 		while (1)
     {
       gimbal_imu_update(pgimbal);
 
-      pid_calculate(&pid_pit, pgimbal->sensor.gyro_angle.pitch, 0);
+      pid_calculate(&pid_pit, pgimbal->sensor.gyro_angle.pitch, -15);
       pid_calculate(&pid_pit_spd, pid_pit.out, pgimbal->sensor.rate.pitch_rate);
 		
       send_gimbal_current(0, -pid_pit_spd.out, 0);
       HAL_Delay(2);
 
-      if ((fabs(pgimbal->sensor.gyro_angle.pitch) < 0.1))
+      if ((fabs(pgimbal->sensor.gyro_angle.pitch) - 15  < 0.1))
       {
         pit_cnt++;
       }
       else
       {
-				
         pit_cnt = 0;
       }
       if (pit_cnt > 1000)
@@ -252,7 +251,8 @@ static void auto_gimbal_adjust(gimbal_t pgimbal)
         }
       }
     }*/
-    yaw_ecd_c = pgimbal->motor[YAW_MOTOR_INDEX].data.ecd;
+    //yaw_ecd_c = pgimbal->motor[YAW_MOTOR_INDEX].data.ecd;
+		yaw_ecd_c = 0;
     gimbal_save_data(yaw_ecd_c, pit_ecd_c);
     gimbal_set_offset(pgimbal, yaw_ecd_c, pit_ecd_c);
     auto_adjust_f = 0;
