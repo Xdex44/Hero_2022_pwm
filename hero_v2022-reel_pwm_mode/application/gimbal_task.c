@@ -7,8 +7,8 @@
  *  (at your option) any later version.
  *
  *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of 
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of聽
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.聽 See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
@@ -72,8 +72,8 @@ void gimbal_task(void const *argument)
   else
   {
     auto_adjust_f = 1;
-	}
-	
+  }
+
   gimbal_init_state_reset();
 
   if (prc_dev != NULL)
@@ -82,6 +82,7 @@ void gimbal_task(void const *argument)
   }
   else
   {
+		
   }
 
   soft_timer_register(imu_temp_keep, (void *)pgimbal, 5);
@@ -89,12 +90,13 @@ void gimbal_task(void const *argument)
 
   imu_temp_ctrl_init();
 
-	//HAL_GPIO_WritePin(LED_GPIO_Port, LD1_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(LED_GPIO_Port, LD1_Pin, GPIO_PIN_SET);
+
   while (1)
   {
-		//HAL_GPIO_WritePin(LED_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(LED_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
 		if(prc_info->mouse.r==1){//Determine whether user holds the right button,
-			yaw_delta = -(float)prc_info->mouse.x * 0.020f;
+			yaw_delta = 0.020f*2;
 		}
 		else {
 			yaw_delta = 0;
@@ -106,6 +108,7 @@ void gimbal_task(void const *argument)
 		}
   
 		gimbal_set_yaw_mode(pgimbal, ENCODER_MODE);
+		gimbal_set_pitch_mode(pgimbal,ENCODER_MODE);
 		pit_delta = (float)prc_info->mouse.y * 0.02f;
 		gimbal_set_pitch_delta(pgimbal, pit_delta);
 		gimbal_set_yaw_delta(pgimbal, yaw_delta);
@@ -190,20 +193,19 @@ static void auto_gimbal_adjust(gimbal_t pgimbal)
 {
   if (auto_adjust_f)
   {
-    pid_struct_init(&pid_pit, 2000, 0, 40, 0, 0);
-    pid_struct_init(&pid_pit_spd, 30000, 3000, 60, 0.2, 0);
-    HAL_GPIO_WritePin(LED_GPIO_Port, LD1_Pin,GPIO_PIN_RESET);
-		while (1)
+    pid_struct_init(&pid_pit, 2000, 0, 60, 0, 0);
+    pid_struct_init(&pid_pit_spd, 30000, 3000, 35, 3, 0);
+    while (1)
     {
       gimbal_imu_update(pgimbal);
 
-      pid_calculate(&pid_pit, pgimbal->sensor.gyro_angle.pitch, -15);
+      pid_calculate(&pid_pit, pgimbal->sensor.gyro_angle.pitch, 0);
       pid_calculate(&pid_pit_spd, pid_pit.out, pgimbal->sensor.rate.pitch_rate);
-		
+
       send_gimbal_current(0, -pid_pit_spd.out, 0);
       HAL_Delay(2);
 
-      if ((fabs(pgimbal->sensor.gyro_angle.pitch) - 15  < 0.1))
+      if ((fabs(pgimbal->sensor.gyro_angle.pitch) < 0.1))
       {
         pit_cnt++;
       }
@@ -241,7 +243,7 @@ static void auto_gimbal_adjust(gimbal_t pgimbal)
       }
       else
       {
-        if ((yaw_ecd_l + yaw_ecd_r) / 2 > 4096)
+        if ((yaw_ecd_l + yaw_ecd_r) / 2 > 4096) 8196 2^12
         {
           yaw_ecd_c = (yaw_ecd_l + yaw_ecd_r) / 2 - 4096;
         }
@@ -251,14 +253,14 @@ static void auto_gimbal_adjust(gimbal_t pgimbal)
         }
       }
     }*/
-    //yaw_ecd_c = pgimbal->motor[YAW_MOTOR_INDEX].data.ecd;
-		yaw_ecd_c = 0;
+    yaw_ecd_c = pgimbal->motor[YAW_MOTOR_INDEX].data.ecd;
     gimbal_save_data(yaw_ecd_c, pit_ecd_c);
     gimbal_set_offset(pgimbal, yaw_ecd_c, pit_ecd_c);
     auto_adjust_f = 0;
     __disable_irq();
     NVIC_SystemReset();
-    while (1);
+    while (1)
+      ;
   }
 }
 
